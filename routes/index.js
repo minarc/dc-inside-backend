@@ -44,4 +44,12 @@ router.get('/api/depress', (req, res, next) => {
   })
 })
 
+router.get('/api/restore', (req, res, next) => {
+  redisSADD.SREM('depress', req.query.hash, (err, response) => {
+    console.log(response)
+    console.log(err)
+    res.send()
+  })
+})
+
 module.exports = router
