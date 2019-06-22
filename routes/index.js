@@ -44,6 +44,14 @@ router.get('/api/depress', (req, res, next) => {
   })
 })
 
+router.get('/api/restrict', (req, res, next) => {
+  redisSADD.SMOVE('depress', 'restrict', req.query.hash, (err, response) => {
+    console.log(response)
+    console.log(err)
+    res.send()
+  })
+})
+
 router.get('/api/restore', (req, res, next) => {
   redisSADD.SREM('depress', req.query.hash, (err, response) => {
     console.log(response)
