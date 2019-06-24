@@ -14,6 +14,7 @@ let redisOperation = redis.createClient({
   port: 10317,
   password: 'WCkaZYzyhYR62p42VddCJba7Kn14vdvw'
 })
+redisSubscriber.subscribe('dc')
 
 /* GET home page. */
 router.get('/api/sse', (req, res, next) => {
@@ -24,7 +25,6 @@ router.get('/api/sse', (req, res, next) => {
     'Access-Control-Allow-Origin': '*'
   })
 
-  redisSubscriber.subscribe('dc')
   redisSubscriber.on('message', (c, message) => {
     res.write('data: ' + message + '\n\n')
   })
@@ -37,7 +37,7 @@ router.get('/api/depress', (req, res, next) => {
     if (error) {
       res.sendStatus(400)
     }
-    res.send(response)
+    res.send()
   })
 })
 
@@ -46,7 +46,7 @@ router.get('/api/restrict', (req, res, next) => {
     if (error) {
       res.sendStatus(400)
     }
-    res.send(response)
+    res.send()
   })
 })
 
@@ -55,7 +55,7 @@ router.get('/api/restore', (req, res, next) => {
     if (error) {
       res.sendStatus(400)
     }
-    res.send(response)
+    res.send()
   })
 })
 
