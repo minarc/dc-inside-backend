@@ -10,7 +10,7 @@
     "debug": "~2.6.9",
     "express": "~4.16.0",
     "fast-crc32c": "^1.0.4",
-    "firebase": "^6.2.3",
+    "firebase": "^6.2.4",
     "firebase-admin": "^8.2.0",
     "http-errors": "~1.6.2",
     "jade": "~1.11.0",
