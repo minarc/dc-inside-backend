@@ -65,10 +65,13 @@ router.post('/api/depress', (req, res, next) => {
       })
       request({ uri: req.body.url, method: 'GET', encoding: null }, (error, response, body) => {
         const content_disposition = response.headers['content-disposition']
-        const extension = content_disposition
-          .split(';')[1]
-          .split('=')[1]
-          .split('.')[1]
+
+        // if (content_disposition !== undefined) {
+        //   const extension = content_disposition
+        //     .split(';')[1]
+        //     .split('=')[1]
+        //     .split('.')[1]
+        // }
 
         bucket.file(req.body.hash).save(body, { validation: false, resumable: false, contentType: 'image/jpg' })
       })
