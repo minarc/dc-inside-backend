@@ -35,15 +35,22 @@ redisSubscriber.subscribe('dc')
 
 router.get('/api/sse', (req, res, next) => {
   res.set({
+    Connection: 'keep-alive',
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
     'Access-Control-Allow-Origin': '*'
   })
+  let redis_queue = []
 
   redisSubscriber.on('message', (c, message) => {
-    res.write('data: ' + message + '\n\n')
+    redis_queue.push('data: ' + message + '\n\n')
   })
+
+  setInterval(() => {
+    for (let i = 0; i < redis_queue.length; i++) {
+      res.write(redis_queue.shift())
+    }
+  }, 1000)
 })
 
 router.post('/api/depress', (req, res, next) => {
@@ -64,7 +71,7 @@ router.post('/api/depress', (req, res, next) => {
         )
       })
       request({ uri: req.body.url, method: 'GET', encoding: null }, (error, response, body) => {
-        const content_disposition = response.headers['content-disposition']
+        // const content_disposition = response.headers['content-disposition']
 
         // if (content_disposition !== undefined) {
         //   const extension = content_disposition
