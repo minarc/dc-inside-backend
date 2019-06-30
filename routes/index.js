@@ -43,14 +43,8 @@ router.get('/api/sse', (req, res, next) => {
   let redis_queue = []
 
   redisSubscriber.on('message', (c, message) => {
-    redis_queue.push('data: ' + message + '\n\n')
+    res.write('data: ' + message + '\n\n')
   })
-
-  setInterval(() => {
-    for (let i = 0; i < redis_queue.length; i++) {
-      res.write(redis_queue.shift())
-    }
-  }, 1000)
 })
 
 router.post('/api/depress', (req, res, next) => {
