@@ -1,7 +1,7 @@
 var express = require('express')
 var router = express.Router()
 const path = require('path')
-const redis = require('redis')
+const async_redis = require('async-redis')
 const request = require('request')
 const fs = require('fs')
 var admin = require('firebase-admin')
@@ -19,13 +19,13 @@ let bucket = admin.storage().bucket()
 // See https://googlecloudplatform.github.io/google-cloud-node/#/docs/storage/latest/storage/bucket
 // for more details.
 
-let redisSubscriber = redis.createClient({
+let redisSubscriber = async_redis.createClient({
   host: 'redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com',
   port: 10317,
   password: 'WCkaZYzyhYR62p42VddCJba7Kn14vdvw'
 })
 
-let redisOperation = redis.createClient({
+let redisOperation = async_redis.createClient({
   host: 'redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com',
   port: 10317,
   password: 'WCkaZYzyhYR62p42VddCJba7Kn14vdvw'
@@ -40,56 +40,34 @@ router.get('/api/sse', (req, res, next) => {
     'Cache-Control': 'no-cache',
     'Access-Control-Allow-Origin': '*'
   })
-  let redis_queue = []
-
   redisSubscriber.on('message', (c, message) => {
     res.write('data: ' + message + '\n\n')
   })
 })
 
 router.post('/api/depress', (req, res, next) => {
-  redisOperation.SISMEMBER(req.body.hash, 'depress', (error, reply) => {
-    if (error) {
-      res.sendStatus(400)
-    }
-
-    if (reply == 0) {
-      redisOperation.SADD('depress', req.body.hash, (error, response) => {
-        if (error) {
-          res.sendStatus(400)
-        }
-        res.send(
-          JSON.stringify({
-            result: response
-          })
-        )
-      })
+  ;(async _ => {
+    const reply = await redisOperation.sismember(req.body.hash, 'depress')
+    if (reply == 0 && !req.body.url.includes('thumb')) {
+      const result = await redisOperation.sadd('depress', req.body.hash)
       request({ uri: req.body.url, method: 'GET', encoding: null }, (error, response, body) => {
-        // const content_disposition = response.headers['content-disposition']
-
-        // if (content_disposition !== undefined) {
-        //   const extension = content_disposition
-        //     .split(';')[1]
-        //     .split('=')[1]
-        //     .split('.')[1]
-        // }
-
         bucket.file(req.body.hash).save(body, { validation: false, resumable: false, contentType: 'image/jpg' })
       })
-    } else {
       res.send(
         JSON.stringify({
-          result: 'already exist'
+          result: result
         })
       )
+    } else {
+      res.send()
     }
-  })
+  })()
 })
 
 router.get('/api/restrict', (req, res, next) => {
-  redisOperation.SISMEMBER(req.query.hash, 'restrict', (error, reply) => {
+  redisOperation.sismember(req.query.hash, 'restrict', (error, reply) => {
     if (reply == 0) {
-      redisOperation.SMOVE('depress', 'restrict', req.query.hash, (error, response) => {
+      redisOperation.smove('depress', 'restrict', req.query.hash, (error, response) => {
         if (error) {
           res.sendStatus(400)
         }
@@ -101,12 +79,9 @@ router.get('/api/restrict', (req, res, next) => {
 })
 
 router.get('/api/restore', (req, res, next) => {
-  redisOperation.SREM('depress', req.query.hash, (error, response) => {
-    if (error) {
-      res.sendStatus(400)
-    }
-    res.send()
-  })
+  ;(async _ => {
+    const reply = await redisOperation.srem('depress', req.query.hash)
+  })()
 })
 
 module.exports = router
