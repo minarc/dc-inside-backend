@@ -40,9 +40,12 @@ router.get("/api/sse", (req, res, next) => {
     "Cache-Control": "no-cache",
     "Access-Control-Allow-Origin": "*"
   });
+
+  res.write("id: " + Date.now() + "\n");
+  res.write("event: welcome" + "\n");
+
   redisSubscriber.on("message", (c, message) => {
     res.write("id: " + Date.now() + "\n");
-    res.write("retry: " + 3000 + "\n");
     res.write("data: " + message + "\n\n");
   });
 });
