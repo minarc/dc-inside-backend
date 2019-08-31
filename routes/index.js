@@ -43,7 +43,7 @@ router.get("/api/sse", (req, res, next) => {
 
   res.write("id: " + Date.now() + "\n");
   res.write("event: welcome" + "\n");
-  res.write("data: " + Date.now() + "\n\n");
+  res.write("data: welcome to sse" + "\n\n");
 
   redisSubscriber.on("message", (c, message) => {
     res.write("id: " + Date.now() + "\n");
