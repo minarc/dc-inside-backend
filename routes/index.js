@@ -33,6 +33,14 @@ let redisOperation = async_redis.createClient({
 
 redisSubscriber.subscribe("dc");
 
+router.get("/api/init", async (req, res, next) => {
+  let init = [];
+  JSON.parse(await redisOperation.get("init")).forEach(e => {
+    init.push(JSON.parse(e));
+  });
+  res.json(init);
+});
+
 router.get("/api/sse", (req, res, next) => {
   res.set({
     Connection: "keep-alive",
@@ -56,9 +64,16 @@ router.post("/api/depress", (req, res, next) => {
     const reply = await redisOperation.sismember(req.body.hash, "depress");
     if (reply == 0 && !req.body.url.includes("thumb")) {
       const result = await redisOperation.sadd("depress", req.body.hash);
-      request({ uri: req.body.url, method: "GET", encoding: null }, (error, response, body) => {
-        bucket.file(req.body.hash).save(body, { validation: false, resumable: false, contentType: "image/jpg" });
-      });
+      request(
+        { uri: req.body.url, method: "GET", encoding: null },
+        (error, response, body) => {
+          bucket.file(req.body.hash).save(body, {
+            validation: false,
+            resumable: false,
+            contentType: "image/jpg"
+          });
+        }
+      );
       res.send(
         JSON.stringify({
           result: result
@@ -73,12 +88,17 @@ router.post("/api/depress", (req, res, next) => {
 router.get("/api/restrict", (req, res, next) => {
   redisOperation.sismember(req.query.hash, "restrict", (error, reply) => {
     if (reply == 0) {
-      redisOperation.smove("depress", "restrict", req.query.hash, (error, response) => {
-        if (error) {
-          res.sendStatus(400);
+      redisOperation.smove(
+        "depress",
+        "restrict",
+        req.query.hash,
+        (error, response) => {
+          if (error) {
+            res.sendStatus(400);
+          }
+          res.send();
         }
-        res.send();
-      });
+      );
     }
     res.send();
   });
