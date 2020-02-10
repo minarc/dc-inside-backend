@@ -30,9 +30,6 @@ let redisOperation = async_redis.createClient({
   port: 10317,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
-
-redisSubscriber.subscribe("dc");
-
 router.get("/api/init", async (req, res, next) => {
   let init = [];
   JSON.parse(await redisOperation.get("init")).forEach(e => {
@@ -41,7 +38,19 @@ router.get("/api/init", async (req, res, next) => {
   res.json(init);
 });
 
-router.get("/api/sse", (req, res, next) => {
+router.get("/api/init/:channel", async (req, res, next) => {
+  let init = [];
+  JSON.parse(await redisOperation.get(`${req.params.channel}_init`)).forEach(
+    e => {
+      init.push(JSON.parse(e));
+    }
+  );
+  res.json(init);
+});
+
+router.get("/api/sse/:channel", (req, res, next) => {
+  redisSubscriber.subscribe(req.params.channel);
+
   res.set({
     Connection: "keep-alive",
     "Content-Type": "text/event-stream",
