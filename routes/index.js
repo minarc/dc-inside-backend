@@ -1,56 +1,43 @@
 var express = require("express");
 var router = express.Router();
-const path = require("path");
 const async_redis = require("async-redis");
 const request = require("request");
-const fs = require("fs");
-var admin = require("firebase-admin");
 
-const serviceAccount = require("../scissor-c5cd4-firebase-adminsdk-xi9sk-c329f70d62.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: "gs://scissor-c5cd4.appspot.com"
-});
-
-let bucket = admin.storage().bucket();
-
-// 'bucket' is an object defined in the @google-cloud/storage library.
-// See https://googlecloudplatform.github.io/google-cloud-node/#/docs/storage/latest/storage/bucket
-// for more details.
-
-let redisSubscriber = async_redis.createClient({
+let baseballSubscriber = async_redis.createClient({
   host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
   port: 10317,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
+baseballSubscriber.subscribe("baseball");
+baseballSubscriber.setMaxListeners(100);
+
+let streamSubscriber = async_redis.createClient({
+  host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
+  port: 10317,
+  password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
+});
+streamSubscriber.subscribe("streamer");
+streamSubscriber.setMaxListeners(100);
 
 let redisOperation = async_redis.createClient({
   host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
   port: 10317,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
-router.get("/api/init", async (req, res, next) => {
-  let init = [];
-  JSON.parse(await redisOperation.get("init")).forEach(e => {
-    init.push(JSON.parse(e));
-  });
-  res.json(init);
+
+redisOperation.on("error", err => {
+  console.log(err);
 });
 
 router.get("/api/init/:channel", async (req, res, next) => {
-  let init = [];
-  JSON.parse(await redisOperation.get(`${req.params.channel}_init`)).forEach(
-    e => {
-      init.push(JSON.parse(e));
-    }
-  );
-  res.json(init);
+  try {
+    res.json(await redisOperation.get(req.params.channel));
+  } catch (err) {
+    res.status(418).json(err);
+  }
 });
 
-router.get("/api/sse/:channel", (req, res, next) => {
-  redisSubscriber.subscribe(req.params.channel);
-
+router.get("/api/sse/:channel", async (req, res, next) => {
   res.set({
     Connection: "keep-alive",
     "Content-Type": "text/event-stream",
@@ -58,14 +45,31 @@ router.get("/api/sse/:channel", (req, res, next) => {
     "Access-Control-Allow-Origin": "*"
   });
 
-  res.write("id: " + Date.now() + "\n");
-  res.write("event: welcome" + "\n");
-  res.write("data: welcome to sse" + "\n\n");
+  res.write(`id: ${Date.now()}\n`);
+  res.write(`event: welcome\n`);
 
-  redisSubscriber.on("message", (c, message) => {
-    res.write("id: " + Date.now() + "\n");
-    res.write("data: " + message + "\n\n");
-  });
+  try {
+    let init = await redisOperation.get(`init`);
+    let welcome = [];
+    JSON.parse(init).forEach(e => {
+      welcome.push(JSON.parse(e));
+    });
+    res.write(`data: ${welcome}\n\n`);
+  } catch (err) {
+    res.status(418).json(err);
+  }
+
+  if (req.params.channel === "streamer") {
+    streamSubscriber.on("message", (c, message) => {
+      res.write(`id: ${Date.now()}\n`);
+      res.write(`data: ${message}\n\n`);
+    });
+  } else if (req.params.channel === "baseball") {
+    baseballSubscriber.on("message", (c, message) => {
+      res.write(`id: ${Date.now()}\n`);
+      res.write(`data: ${message}\n\n`);
+    });
+  }
 });
 
 router.post("/api/depress", (req, res, next) => {
@@ -111,12 +115,6 @@ router.get("/api/restrict", (req, res, next) => {
     }
     res.send();
   });
-});
-
-router.get("/api/restore", (req, res, next) => {
-  (async _ => {
-    const reply = await redisOperation.srem("depress", req.query.hash);
-  })();
 });
 
 module.exports = router;

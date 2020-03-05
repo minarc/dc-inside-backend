@@ -40,6 +40,4 @@ app.use((err, req, res, next) => {
   res.render("error");
 });
 
-process.setMaxListeners(100);
-
 module.exports = app;
