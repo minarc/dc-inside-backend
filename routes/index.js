@@ -62,11 +62,13 @@ router.get("/api/sse/:channel", async (req, res, next) => {
   if (req.params.channel === "streamer") {
     streamSubscriber.on("message", (c, message) => {
       res.write(`id: ${Date.now()}\n`);
+      // res.write(`event: streamer\n`);
       res.write(`data: ${message}\n\n`);
     });
   } else if (req.params.channel === "baseball") {
     baseballSubscriber.on("message", (c, message) => {
       res.write(`id: ${Date.now()}\n`);
+      // res.write(`event: baseball\n`);
       res.write(`data: ${message}\n\n`);
     });
   }
