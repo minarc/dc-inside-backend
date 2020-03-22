@@ -4,29 +4,33 @@ const async_redis = require("async-redis");
 const request = require("request");
 
 let baseballSubscriber = async_redis.createClient({
-  host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
-  port: 10317,
+  host: "34.64.196.220",
+  port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
 baseballSubscriber.subscribe("baseball");
 baseballSubscriber.setMaxListeners(100);
 
 let streamSubscriber = async_redis.createClient({
-  host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
-  port: 10317,
+  host: "34.64.196.220",
+  port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
 streamSubscriber.subscribe("streamer");
 streamSubscriber.setMaxListeners(100);
 
 let redisOperation = async_redis.createClient({
-  host: "redis-10317.c16.us-east-1-3.ec2.cloud.redislabs.com",
-  port: 10317,
+  host: "34.64.196.220",
+  port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
 
 redisOperation.on("error", err => {
   console.log(err);
+});
+
+router.get("/", (req, res) => {
+  res.send(new Date().toUTCString());
 });
 
 router.get("/api/init/:channel", async (req, res, next) => {
@@ -48,27 +52,14 @@ router.get("/api/sse/:channel", async (req, res, next) => {
   res.write(`id: ${Date.now()}\n`);
   res.write(`event: welcome\n`);
 
-  try {
-    let init = await redisOperation.get(`init`);
-    let welcome = [];
-    JSON.parse(init).forEach(e => {
-      welcome.push(JSON.parse(e));
-    });
-    res.write(`data: ${welcome}\n\n`);
-  } catch (err) {
-    res.status(418).json(err);
-  }
-
   if (req.params.channel === "streamer") {
     streamSubscriber.on("message", (c, message) => {
       res.write(`id: ${Date.now()}\n`);
-      // res.write(`event: streamer\n`);
       res.write(`data: ${message}\n\n`);
     });
   } else if (req.params.channel === "baseball") {
     baseballSubscriber.on("message", (c, message) => {
       res.write(`id: ${Date.now()}\n`);
-      // res.write(`event: baseball\n`);
       res.write(`data: ${message}\n\n`);
     });
   }
