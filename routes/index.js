@@ -4,7 +4,7 @@ const async_redis = require("async-redis");
 const request = require("request");
 
 let baseballSubscriber = async_redis.createClient({
-  host: "34.64.196.220",
+  host: "127.0.0.1",
   port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
@@ -12,7 +12,7 @@ baseballSubscriber.subscribe("baseball");
 baseballSubscriber.setMaxListeners(100);
 
 let streamSubscriber = async_redis.createClient({
-  host: "34.64.196.220",
+  host: "127.0.0.1",
   port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
@@ -20,7 +20,7 @@ streamSubscriber.subscribe("streamer");
 streamSubscriber.setMaxListeners(100);
 
 let redisOperation = async_redis.createClient({
-  host: "34.64.196.220",
+  host: "127.0.0.1",
   port: 6379,
   password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
 });
