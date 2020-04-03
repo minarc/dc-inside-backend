@@ -4,25 +4,17 @@ const async_redis = require("async-redis");
 const request = require("request");
 
 let baseballSubscriber = async_redis.createClient({
-  host: "127.0.0.1",
-  port: 6379,
-  password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD
 });
 baseballSubscriber.subscribe("baseball");
 baseballSubscriber.setMaxListeners(100);
 
-let streamSubscriber = async_redis.createClient({
-  host: "127.0.0.1",
-  port: 6379,
-  password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
-});
-streamSubscriber.subscribe("streamer");
-streamSubscriber.setMaxListeners(100);
-
 let redisOperation = async_redis.createClient({
-  host: "127.0.0.1",
-  port: 6379,
-  password: "WCkaZYzyhYR62p42VddCJba7Kn14vdvw"
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD
 });
 
 redisOperation.on("error", err => {
@@ -35,7 +27,7 @@ router.get("/", (req, res) => {
 
 router.get("/api/init/:channel", async (req, res, next) => {
   try {
-    res.json(await redisOperation.get(req.params.channel));
+    res.json(await redisOperation.lrange(req.params.channel, 0, 10));
   } catch (err) {
     res.status(418).json(err);
   }
@@ -52,17 +44,10 @@ router.get("/api/sse/:channel", async (req, res, next) => {
   res.write(`id: ${Date.now()}\n`);
   res.write(`event: welcome\n`);
 
-  if (req.params.channel === "streamer") {
-    streamSubscriber.on("message", (c, message) => {
-      res.write(`id: ${Date.now()}\n`);
-      res.write(`data: ${message}\n\n`);
-    });
-  } else if (req.params.channel === "baseball") {
-    baseballSubscriber.on("message", (c, message) => {
-      res.write(`id: ${Date.now()}\n`);
-      res.write(`data: ${message}\n\n`);
-    });
-  }
+  baseballSubscriber.on("message", (c, message) => {
+    res.write(`id: ${Date.now()}\n`);
+    res.write(`data: ${message}\n\n`);
+  });
 });
 
 router.post("/api/depress", (req, res, next) => {
